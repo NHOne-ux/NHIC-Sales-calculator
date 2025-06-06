@@ -1,0 +1,415 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales SparkX Calculator (In-Market, Tele, In-Community Teams)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #6b48ff, #00ddeb, #ff2e63);
+      font-family: 'Arial', sans-serif;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      margin: 2rem auto;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .header img {
+      height: 60px;
+      max-width: 150px;
+      object-fit: contain;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, #ff6f61, #ffcc5c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+      flex: 1;
+      margin: 0;
+    }
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00c4ff, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .input-gradient {
+      border: 2px solid transparent;
+      border-image: linear-gradient(90deg, #ff6f61, #ffcc5c) 1;
+      border-radius: 0.75rem;
+      padding: 0.5rem;
+      background: #fefaf6;
+      transition: border-image 0.3s;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .input-gradient:focus {
+      border-image: linear-gradient(90deg, #00c4ff, #ff00ff) 1;
+      outline: none;
+    }
+    .btn-gradient {
+      background: linear-gradient(90deg, #ff6f61, #ffcc5c);
+      color: white;
+      font-weight: bold;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      transition: background 0.3s;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 44px;
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(90deg, #ffcc5c, #ff6f61);
+    }
+    .table-header {
+      background: linear-gradient(90deg, #00c4ff, #ff00ff);
+      color: white;
+    }
+    .table-row:nth-child(odd) {
+      background: #f3e8ff;
+    }
+    .table-row:nth-child(even) {
+      background: #e0f7fa;
+    }
+    .result-highlight {
+      background: linear-gradient(90deg, #ff6f61, #ffcc5c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .disclaimer {
+      margin-top: 1rem;
+      color: #666;
+    }
+    .parameter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .parameter-simple {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .results-table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+    }
+    @media (max-width: 639px) {
+      .card {
+        max-width: 90%;
+        padding: 1.5rem;
+        margin: 1rem auto;
+      }
+      .header {
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      .header img {
+        height: 50px;
+        max-width: 120px;
+        margin: 0 auto;
+      }
+      .header h1 {
+        font-size: 1.5rem;
+        margin: 0.5rem 0;
+      }
+      .section-title {
+        font-size: 1rem;
+      }
+      .input-gradient {
+        font-size: 0.875rem;
+      }
+      .parameter-grid, .parameter-simple {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .parameter-grid div:nth-child(1), .parameter-simple div:nth-child(1) {
+        flex: 1 1 100%;
+      }
+      .parameter-grid div:nth-child(2),
+      .parameter-grid div:nth-child(3),
+      .parameter-simple div:nth-child(2) {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
+      }
+      table {
+        min-width: 500px;
+      }
+      label {
+        font-size: 0.875rem;
+      }
+      .results-table-container + p {
+        font-size: 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+  <div class="card">
+    <!-- Header with Logos -->
+    <div class="header">
+      <img src="https://i.imgur.com/9vVHtYa.jpeg" alt="Narayana Health Logo - Red and blue cross with Narayana one Health text">
+      <h1>Sales SparkX Calculator (In-Market, Tele, In-Community Teams)</h1>
+      <img src="https://i.imgur.com/HGun4vP.jpeg" alt="SparkX Logo - Orange bull with SPARKX text">
+    </div>
+
+    <!-- Input Form -->
+    <div class="space-y-4">
+      <!-- Parameter Inputs -->
+      <div class="space-y-2">
+        <h2 class="section-title">Parameters</h2>
+        <!-- Arya Insurance (GWP) with Target and Achievement -->
+        <div class="parameter-grid">
+          <div><label class="text-sm font-medium text-gray-600">Parameter</label></div>
+          <div><label class="text-sm font-medium text-gray-600">Target</label></div>
+          <div><label class="text-sm font-medium text-gray-600">Achievement</label></div>
+        </div>
+        <div class="parameter-grid">
+          <div><label class="text-sm text-gray-600">Arya Insurance (GWP)</label></div>
+          <div><input type="text" id="gwp-target" class="input-gradient" placeholder="e.g., 4,00,000" oninput="formatInput(this)"></div>
+          <div><input type="text" id="gwp-achievement" class="input-gradient" placeholder="e.g., 20,00,000" oninput="formatInput(this)"></div>
+        </div>
+        <!-- Applications and OHMP with Value only -->
+        <div class="parameter-simple">
+          <div><label class="text-sm font-medium text-gray-600">Parameter</label></div>
+          <div><label class="text-sm font-medium text-gray-600">Value</label></div>
+        </div>
+        <div class="parameter-simple">
+          <div><label class="text-sm text-gray-600"># Applications in Underwriting Queue</label></div>
+          <div><input type="text" id="applications-achievement" class="input-gradient" placeholder="e.g., 28" oninput="formatInput(this)"></div>
+        </div>
+        <div class="parameter-simple">
+          <div><label class="text-sm text-gray-600"># OHMP and Allied Services Packages</label></div>
+          <div><input type="text" id="ohmp-achievement" class="input-gradient" placeholder="e.g., 10" oninput="formatInput(this)"></div>
+        </div>
+      </div>
+
+      <!-- Calculate Button -->
+      <button onclick="calculate()" class="btn-gradient">Calculate</button>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+      <h2 class="section-title">Results</h2>
+      <p id="result-message" class="mt-2 font-semibold text-gray-800"></p>
+      <div class="results-table-container">
+        <table class="text-sm mt-2 border-collapse">
+          <thead>
+            <tr class="table-header">
+              <th class="p-2">Incentive Component</th>
+              <th class="p-2">Incentive (Rs)</th>
+              <th class="p-2">Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="results-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Disclaimers -->
+    <div class="disclaimer text-xs">
+      <p>*NOH confidential—do not share externally.</p>
+      <p>*Benefits shown are for representation purpose only and final benefit may defer as per the detailed T&C of the program.</p>
+    </div>
+  </div>
+
+  <script>
+    // Function to format numbers in Indian style (e.g., 400000 → 4,00,000)
+    function formatIndianNumber(num) {
+      if (isNaN(num) || num === '') return '';
+      let [integerPart, decimalPart] = num.toString().split('.');
+      integerPart = integerPart.replace(/,/g, ''); // Remove existing commas
+      let lastThree = integerPart.slice(-3);
+      let otherNumbers = integerPart.slice(0, -3);
+      if (otherNumbers !== '') {
+        lastThree = ',' + lastThree;
+      }
+      let formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree;
+      return decimalPart ? `${formatted}.${decimalPart}` : formatted;
+    }
+
+    // Function to parse formatted number back to raw value (e.g., 4,00,000 → 400000)
+    function parseIndianNumber(str) {
+      if (!str) return 0;
+      return parseFloat(str.replace(/,/g, '')) || 0;
+    }
+
+    // Format input fields as user types
+    function formatInput(element, allowDecimals = false) {
+      let value = element.value.replace(/,/g, '');
+      if (allowDecimals) {
+        let parts = value.split('.');
+        parts[0] = formatIndianNumber(parts[0]);
+        element.value = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+      } else {
+        element.value = formatIndianNumber(value);
+      }
+    }
+
+    // Payout slabs for GWP
+    const payoutSlabs = [
+      { min: 0, max: 59.9, rate: 0 },
+      { min: 60, max: 69.9, rate: 0.03 },
+      { min: 70, max: 79.9, rate: 0.04 },
+      { min: 80, max: 89.9, rate: 0.05 },
+      { min: 90, max: 99.9, rate: 0.06 },
+      { min: 100, max: 109.9, rate: 0.12 },
+      { min: 110, max: 119.9, rate: 0.15 },
+      { min: 120, max: 129.9, rate: 0.20 },
+      { min: 130, max: Infinity, rate: 0.25 }
+    ];
+
+    // Calculate results
+    function calculate() {
+      // Get input values and parse them
+      const gwpTarget = parseIndianNumber(document.getElementById('gwp-target').value);
+      const gwpAchievement = parseIndianNumber(document.getElementById('gwp-achievement').value);
+      const applications = parseIndianNumber(document.getElementById('applications-achievement').value);
+      const ohmpPackages = parseIndianNumber(document.getElementById('ohmp-achievement').value);
+
+      // Calculate GWP % Achievement
+      const gwpPercentAchievement = gwpTarget > 0 ? (gwpAchievement / gwpTarget) * 100 : 0;
+
+      // Calculate GWP Incentive using incremental slabs
+      let remainingGWP = gwpAchievement;
+      let gwpIncentive = 0;
+      let currentGWP = 0;
+
+      for (const slab of payoutSlabs) {
+        const slabRange = ((slab.max - slab.min) / 100) * gwpTarget;
+        const slabGWP = Math.min(remainingGWP, slabRange);
+        if (slabGWP > 0) {
+          gwpIncentive += slabGWP * slab.rate;
+          currentGWP += slabGWP;
+          remainingGWP -= slabGWP;
+        }
+        if (slab.max === Infinity) {
+          gwpIncentive += remainingGWP * slab.rate;
+          currentGWP += remainingGWP;
+          remainingGWP = 0;
+        }
+        if (remainingGWP <= 0) break;
+      }
+
+      // Round GWP incentive to nearest integer
+      gwpIncentive = Math.round(gwpIncentive);
+
+      // Calculate Boosters (only if GWP Achievement > 60%)
+      let booster1Incentive = 0;
+      let booster2Incentive = 0;
+      if (gwpPercentAchievement > 60) {
+        booster1Incentive = applications * 50;
+        booster2Incentive = ohmpPackages * 100;
+      }
+
+      // Total Incentive
+      const totalIncentive = gwpIncentive + booster1Incentive + booster2Incentive;
+
+      // Display Results
+      const resultMessage = document.getElementById('result-message');
+      if (totalIncentive > 0) {
+        resultMessage.innerText = `Congratulations, you have qualified for the Spark Incentives. Your Incentive for this month is Rs ${formatIndianNumber(totalIncentive.toFixed(0))}.`;
+      } else {
+        resultMessage.innerText = `You missed the Spark incentive for the performance month.`;
+      }
+
+      const resultsTable = document.getElementById('results-table');
+      resultsTable.innerHTML = `
+        <tr class="table-row">
+          <td class="p-2">Core Parameter: GWP</td>
+          <td class="p-2">${formatIndianNumber(gwpIncentive.toFixed(0))}</td>
+          <td class="p-2">${gwpPercentAchievement > 0 ? formatIndianNumber(gwpPercentAchievement.toFixed(2)) + '% Achievement' : 'N/A'}</td>
+        </tr>
+        <tr class="table-row">
+          <td class="p-2">Booster 1: Applications in Underwriting Queue</td>
+          <td class="p-2">${formatIndianNumber(booster1Incentive.toFixed(0))}</td>
+          <td class="p-2">Rs 50 per Application (if GWP Ach >60%)</td>
+        </tr>
+        <tr class="table-row">
+          <td class="p-2">Booster 2: OHMP and Allied Services Packages</td>
+          <td class="p-2">${formatIndianNumber(booster2Incentive.toFixed(0))}</td>
+          <td class="p-2">Rs 100 per sale (if GWP Ach >60%)</td>
+        </tr>
+        <tr class="table-row">
+          <td class="p-2 font-bold">Total Incentive</td>
+          <td class="p-2 font-bold result-highlight">${formatIndianNumber(totalIncentive.toFixed(0))}</td>
+          <td class="p-2"></td>
+        </tr>
+      `;
+
+      document.getElementById('results').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
