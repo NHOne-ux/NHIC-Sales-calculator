@@ -344,57 +344,5 @@
       // Calculate GWP Achievement %
       const gwpPercent = gwpTarget > 0 ? (gwpAchievement / gwpTarget * 100) : 0;
 
-      // Calculate Incremental GWP for Core Parameter Incentive
-      const thresholdGWP = gwpTarget * 0.6; // 60% threshold
-      let coreIncentive = 0;
-      let incrementalGWP = 0;
-      const payoutRate = payoutTable.find(p => gwpPercent >= p.min && gwpPercent < p.max)?.payout || 0;
-      if (gwpPercent > 60) { // Core Parameter incentive unlocks only if GWP Achievement > 60%
-        incrementalGWP = gwpAchievement - thresholdGWP; // Incremental GWP above 60%
-        coreIncentive = incrementalGWP * payoutRate;
-      }
-
-      // Calculate Booster Incentives (apply if GWP Achievement >= 60%)
-      const boosterThreshold = 60;
-      const booster1Incentive = gwpPercent >= boosterThreshold ? applications * 50 : 0;
-      const booster2Incentive = gwpPercent >= boosterThreshold ? ohmpPackages * 100 : 0;
-
-      // Total Incentive
-      const totalIncentive = coreIncentive + booster1Incentive + booster2Incentive;
-
-      // Final Result Message
-      const finalResult = totalIncentive > 0
-        ? `Congratulations, you have qualified for the Spark Incentives. Your Incentive for this month is Rs ${formatIndianNumber(totalIncentive.toFixed(2))}.`
-        : `You missed the Spark incentive for the performance month.`;
-
-      // Display Results
-      const resultsTable = document.getElementById('results-table');
-      resultsTable.innerHTML = `
-        <tr class="table-row">
-          <td class="p-2">Core Parameter: GWP</td>
-          <td class="p-2">${formatIndianNumber(coreIncentive.toFixed(2))}</td>
-          <td class="p-2">${formatIndianNumber((payoutRate * 100).toFixed(2))}% of Incremental GWP above 60% threshold (unlocks > 60%)</td>
-        </tr>
-        <tr class="table-row">
-          <td class="p-2">Booster 1: Applications in Underwriting Queue</td>
-          <td class="p-2">${formatIndianNumber(booster1Incentive.toFixed(2))}</td>
-          <td class="p-2">Rs 50 per Application (if GWP Ach >= 60%)</td>
-        </tr>
-        <tr class="table-row">
-          <td class="p-2">Booster 2: OHMP and Allied Services Packages</td>
-          <td class="p-2">${formatIndianNumber(booster2Incentive.toFixed(2))}</td>
-          <td class="p-2">Rs 100 per sale (if GWP Ach >= 60%)</td>
-        </tr>
-        <tr class="table-row font-bold">
-          <td class="p-2">Total Incentive</td>
-          <td class="p-2 result-highlight">${formatIndianNumber(totalIncentive.toFixed(2))}</td>
-          <td class="p-2"></td>
-        </tr>
-      `;
-
-      document.getElementById('final-result').innerText = finalResult;
-      document.getElementById('results').classList.remove('hidden');
-    }
-  </script>
-</body>
-</html>
+      // Calculate Core Parameter Incentive (incremental slab-wise, starting at 70%)
+      let coreIncentive =
