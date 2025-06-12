@@ -344,11 +344,14 @@
       // Calculate GWP Achievement %
       const gwpPercent = gwpTarget > 0 ? (gwpAchievement / gwpTarget * 100) : 0;
 
-      // Determine Core Parameter Incentive
+      // Calculate Incremental GWP for Core Parameter Incentive
+      const thresholdGWP = gwpTarget * 0.6; // 60% threshold
       let coreIncentive = 0;
+      let incrementalGWP = 0;
       const payoutRate = payoutTable.find(p => gwpPercent >= p.min && gwpPercent < p.max)?.payout || 0;
       if (gwpPercent > 60) { // Core Parameter incentive unlocks only if GWP Achievement > 60%
-        coreIncentive = gwpAchievement * payoutRate;
+        incrementalGWP = gwpAchievement - thresholdGWP; // Incremental GWP above 60%
+        coreIncentive = incrementalGWP * payoutRate;
       }
 
       // Calculate Booster Incentives (apply if GWP Achievement >= 60%)
@@ -370,7 +373,7 @@
         <tr class="table-row">
           <td class="p-2">Core Parameter: GWP</td>
           <td class="p-2">${formatIndianNumber(coreIncentive.toFixed(2))}</td>
-          <td class="p-2">Payout Rate: ${formatIndianNumber((payoutRate * 100).toFixed(2))}% of GWP Achievement (unlocks > 60%)</td>
+          <td class="p-2">${formatIndianNumber((payoutRate * 100).toFixed(2))}% of Incremental GWP above 60% threshold (unlocks > 60%)</td>
         </tr>
         <tr class="table-row">
           <td class="p-2">Booster 1: Applications in Underwriting Queue</td>
