@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales SparkX Calculator (In-Market, Tele, In-Community Teams)</title>
+  <title>Sales SparkX Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -110,19 +110,18 @@
       align-items: center;
       margin-bottom: 0.5rem;
     }
-    .parameter-simple {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
     .results-table-container {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
     table {
       width: 100%;
+    }
+    .error-message {
+      color: #ff4444;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+      display: none;
     }
     @media (max-width: 639px) {
       .card {
@@ -150,17 +149,16 @@
       .input-gradient {
         font-size: 0.875rem;
       }
-      .parameter-grid, .parameter-simple {
+      .parameter-grid {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
       }
-      .parameter-grid div:nth-child(1), .parameter-simple div:nth-child(1) {
+      .parameter-grid div:nth-child(1) {
         flex: 1 1 100%;
       }
       .parameter-grid div:nth-child(2),
-      .parameter-grid div:nth-child(3),
-      .parameter-simple div:nth-child(2) {
+      .parameter-grid div:nth-child(3) {
         flex: 1 1 calc(50% - 0.25rem);
         min-width: 0;
       }
@@ -173,6 +171,9 @@
       .results-table-container + p {
         font-size: 0.875rem;
       }
+      .error-message {
+        font-size: 0.75rem;
+      }
     }
   </style>
 </head>
@@ -181,7 +182,7 @@
     <!-- Header with Logos -->
     <div class="header">
       <img src="https://i.imgur.com/9vVHtYa.jpeg" alt="Narayana Health Logo - Red and blue cross with Narayana one Health text">
-      <h1>Sales SparkX Calculator (In-Market, Tele, In-Community Teams)</h1>
+      <h1>Sales SparkX Calculator</h1>
       <img src="https://i.imgur.com/HGun4vP.jpeg" alt="SparkX Logo - Orange bull with SPARKX text">
     </div>
 
@@ -190,31 +191,30 @@
       <!-- Parameter Inputs -->
       <div class="space-y-2">
         <h2 class="section-title">Parameters</h2>
-        <!-- Arya Insurance (GWP) with Target and Achievement -->
         <div class="parameter-grid">
           <div><label class="text-sm font-medium text-gray-600">Parameter</label></div>
-          <div><label class="text-sm font-medium text-gray-600">Target (Monthly)</label></div>
-          <div><label class="text-sm font-medium text-gray-600">Achievement (Monthly)</label></div>
+          <div><label class="text-sm font-medium text-gray-600">Target</label></div>
+          <div><label class="text-sm font-medium text-gray-600">Achievement</label></div>
         </div>
         <div class="parameter-grid">
-          <div><label class="text-sm text-gray-600">Arya Insurance (GWP)</label></div>
+          <div><label class="text-sm text-gray-600">Gross Written Premium (GWP)</label></div>
           <div><input type="text" id="gwp-target" class="input-gradient" placeholder="e.g., 4,00,000" oninput="formatInput(this)"></div>
-          <div><input type="text" id="gwp-achievement" class="input-gradient" placeholder="e.g., 20,00,000" oninput="formatInput(this)"></div>
+          <div><input type="text" id="gwp-achievement" class="input-gradient" placeholder="e.g., 2,40,000" oninput="formatInput(this)"></div>
         </div>
-        <!-- Applications and OHMP with Value only -->
-        <div class="parameter-simple">
-          <div><label class="text-sm font-medium text-gray-600">Parameter</label></div>
-          <div><label class="text-sm font-medium text-gray-600">Value (Monthly)</label></div>
+        <div class="parameter-grid">
+          <div><label class="text-sm text-gray-600"># of Applications in Underwriting Queue</label></div>
+          <div></div>
+          <div><input type="text" id="applications" class="input-gradient" placeholder="e.g., 10" oninput="formatInput(this, false, true)"></div>
         </div>
-        <div class="parameter-simple">
-          <div><label class="text-sm text-gray-600"># Applications in Underwriting Queue</label></div>
-          <div><input type="text" id="applications-achievement" class="input-gradient" placeholder="e.g., 28" oninput="formatInput(this)"></div>
-        </div>
-        <div class="parameter-simple">
-          <div><label class="text-sm text-gray-600"># OHMP and Allied Services Packages</label></div>
-          <div><input type="text" id="ohmp-achievement" class="input-gradient" placeholder="e.g., 10" oninput="formatInput(this)"></div>
+        <div class="parameter-grid">
+          <div><label class="text-sm text-gray-600"># of OHMP and Allied Services Packages</label></div>
+          <div></div>
+          <div><input type="text" id="ohmp-packages" class="input-gradient" placeholder="e.g., 8" oninput="formatInput(this, false, true)"></div>
         </div>
       </div>
+
+      <!-- Error Message -->
+      <div id="error-message" class="error-message"></div>
 
       <!-- Calculate Button -->
       <button onclick="calculate()" class="btn-gradient">Calculate</button>
@@ -222,8 +222,8 @@
 
     <!-- Results Section -->
     <div id="results" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
-      <h2 class="section-title">Results</h2>
-      <p id="result-message" class="mt-2 font-semibold text-gray-800"></p>
+      <p id="final-result" class="font-semibold text-gray-800 mb-2"></p>
+      <h2 class="section-title">Incentive Breakdown</h2>
       <div class="results-table-container">
         <table class="text-sm mt-2 border-collapse">
           <thead>
@@ -240,13 +240,13 @@
 
     <!-- Disclaimers -->
     <div class="disclaimer text-xs">
+      <p>*Note: Benefits shown are for representation purpose only and final benefit may defer as per the detailed T&C of the program.</p>
       <p>*NOH confidential—do not share externally.</p>
-      <p>*Benefits shown are for representation purpose only and final benefit may defer as per the detailed T&C of the program.</p>
     </div>
   </div>
 
   <script>
-    // Function to format numbers in Indian style (e.g., 400000 → 4,00,000)
+    // Function to format numbers in Indian style (e.g., 1500000 → 15,00,000)
     function formatIndianNumber(num) {
       if (isNaN(num) || num === '') return '';
       let [integerPart, decimalPart] = num.toString().split('.');
@@ -260,16 +260,20 @@
       return decimalPart ? `${formatted}.${decimalPart}` : formatted;
     }
 
-    // Function to parse formatted number back to raw value (e.g., 4,00,000 → 400000)
+    // Function to parse formatted number back to raw value (e.g., 15,00,000 → 1500000)
     function parseIndianNumber(str) {
       if (!str) return 0;
       return parseFloat(str.replace(/,/g, '')) || 0;
     }
 
     // Format input fields as user types
-    function formatInput(element, allowDecimals = false) {
+    function formatInput(element, allowDecimals = false, integerOnly = false) {
       let value = element.value.replace(/,/g, '');
-      if (allowDecimals) {
+      if (integerOnly) {
+        // Remove any decimal part for integer-only fields
+        value = value.split('.')[0];
+        element.value = formatIndianNumber(value);
+      } else if (allowDecimals) {
         let parts = value.split('.');
         parts[0] = formatIndianNumber(parts[0]);
         element.value = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
@@ -278,97 +282,114 @@
       }
     }
 
-    // Payout slabs for GWP
-    const payoutSlabs = [
-      { min: 0, max: 59.9, rate: 0 },
-      { min: 60, max: 69.9, rate: 0.03 },
-      { min: 70, max: 79.9, rate: 0.04 },
-      { min: 80, max: 89.9, rate: 0.05 },
-      { min: 90, max: 99.9, rate: 0.06 },
-      { min: 100, max: 109.9, rate: 0.12 },
-      { min: 110, max: 119.9, rate: 0.15 },
-      { min: 120, max: 129.9, rate: 0.20 },
-      { min: 130, max: Infinity, rate: 0.25 }
+    // Validate inputs
+    function validateInputs() {
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.style.display = 'none';
+      errorMessage.innerText = '';
+
+      const inputs = [
+        { id: 'gwp-target', name: 'Gross Written Premium (GWP) Target' },
+        { id: 'gwp-achievement', name: 'Gross Written Premium (GWP) Achievement' },
+        { id: 'applications', name: '# of Applications in Underwriting Queue', integerOnly: true },
+        { id: 'ohmp-packages', name: '# of OHMP and Allied Services Packages', integerOnly: true }
+      ];
+
+      for (const input of inputs) {
+        const value = parseIndianNumber(document.getElementById(input.id).value);
+        if (value <= 0) {
+          errorMessage.innerText = `${input.name} must be a positive number.`;
+          errorMessage.style.display = 'block';
+          return false;
+        }
+        if (input.integerOnly) {
+          const rawValue = document.getElementById(input.id).value.replace(/,/g, '');
+          if (rawValue.includes('.')) {
+            errorMessage.innerText = `${input.name} must be a whole number (no decimals).`;
+            errorMessage.style.display = 'block';
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    // Payout table (inclusive of lower bound, exclusive of upper bound)
+    const payoutTable = [
+      { min: 0, max: 60, payout: 0 },        // 0% to <60%
+      { min: 60, max: 70, payout: 0.03 },    // 60% to <70%
+      { min: 70, max: 80, payout: 0.04 },    // 70% to <80%
+      { min: 80, max: 90, payout: 0.05 },    // 80% to <90%
+      { min: 90, max: 100, payout: 0.06 },   // 90% to <100%
+      { min: 100, max: 110, payout: 0.12 },  // 100% to <110%
+      { min: 110, max: 120, payout: 0.15 },  // 110% to <120%
+      { min: 120, max: 130, payout: 0.20 },  // 120% to <130%
+      { min: 130, max: Infinity, payout: 0.25 } // >=130%
     ];
 
     // Calculate results
     function calculate() {
+      // Validate inputs first
+      if (!validateInputs()) {
+        document.getElementById('results').classList.add('hidden');
+        return;
+      }
+
       // Get input values and parse them
       const gwpTarget = parseIndianNumber(document.getElementById('gwp-target').value);
       const gwpAchievement = parseIndianNumber(document.getElementById('gwp-achievement').value);
-      const applications = parseIndianNumber(document.getElementById('applications-achievement').value);
-      const ohmpPackages = parseIndianNumber(document.getElementById('ohmp-achievement').value);
+      const applications = parseIndianNumber(document.getElementById('applications').value);
+      const ohmpPackages = parseIndianNumber(document.getElementById('ohmp-packages').value);
 
-      // Calculate GWP % Achievement
-      const gwpPercentAchievement = gwpTarget > 0 ? (gwpAchievement / gwpTarget) * 100 : 0;
+      // Calculate GWP Achievement %
+      const gwpPercent = gwpTarget > 0 ? (gwpAchievement / gwpTarget * 100) : 0;
 
-      // Calculate GWP Incentive using incremental slabs
-      let remainingGWP = gwpAchievement;
-      let gwpIncentive = 0;
-      let currentGWP = 0;
-
-      for (const slab of payoutSlabs) {
-        const slabRange = ((slab.max - slab.min) / 100) * gwpTarget;
-        const slabGWP = Math.min(remainingGWP, slabRange);
-        if (slabGWP > 0) {
-          gwpIncentive += slabGWP * slab.rate;
-          currentGWP += slabGWP;
-          remainingGWP -= slabGWP;
-        }
-        if (slab.max === Infinity) {
-          gwpIncentive += remainingGWP * slab.rate;
-          currentGWP += remainingGWP;
-          remainingGWP = 0;
-        }
-        if (remainingGWP <= 0) break;
+      // Determine Core Parameter Incentive
+      let coreIncentive = 0;
+      const payoutRate = payoutTable.find(p => gwpPercent >= p.min && gwpPercent < p.max)?.payout || 0;
+      if (gwpPercent > 60) { // Core Parameter incentive unlocks only if GWP Achievement > 60%
+        coreIncentive = gwpAchievement * payoutRate;
       }
 
-      // Round GWP incentive to nearest integer
-      gwpIncentive = Math.round(gwpIncentive);
-
-      // Calculate Boosters (only if GWP Achievement > 60%)
-      let booster1Incentive = 0;
-      let booster2Incentive = 0;
-      if (gwpPercentAchievement > 60) {
-        booster1Incentive = applications * 50;
-        booster2Incentive = ohmpPackages * 100;
-      }
+      // Calculate Booster Incentives (apply if GWP Achievement >= 60%)
+      const boosterThreshold = 60;
+      const booster1Incentive = gwpPercent >= boosterThreshold ? applications * 50 : 0;
+      const booster2Incentive = gwpPercent >= boosterThreshold ? ohmpPackages * 100 : 0;
 
       // Total Incentive
-      const totalIncentive = gwpIncentive + booster1Incentive + booster2Incentive;
+      const totalIncentive = coreIncentive + booster1Incentive + booster2Incentive;
+
+      // Final Result Message
+      const finalResult = totalIncentive > 0
+        ? `Congratulations, you have qualified for the Spark Incentives. Your Incentive for this month is Rs ${formatIndianNumber(totalIncentive.toFixed(2))}.`
+        : `You missed the Spark incentive for the performance month.`;
 
       // Display Results
-      const resultMessage = document.getElementById('result-message');
-      if (totalIncentive > 0) {
-        resultMessage.innerText = `Congratulations, you have qualified for the Spark Incentives. Your Monthly Incentive is Rs ${formatIndianNumber(totalIncentive.toFixed(0))}.`;
-      } else {
-        resultMessage.innerText = `You missed the Spark incentive for the performance month.`;
-      }
-
       const resultsTable = document.getElementById('results-table');
       resultsTable.innerHTML = `
         <tr class="table-row">
           <td class="p-2">Core Parameter: GWP</td>
-          <td class="p-2">${formatIndianNumber(gwpIncentive.toFixed(0))}</td>
-          <td class="p-2">${gwpPercentAchievement > 0 ? formatIndianNumber(gwpPercentAchievement.toFixed(2)) + '% Achievement' : 'N/A'}</td>
+          <td class="p-2">${formatIndianNumber(coreIncentive.toFixed(2))}</td>
+          <td class="p-2">Payout Rate: ${formatIndianNumber((payoutRate * 100).toFixed(2))}% of GWP Achievement (unlocks > 60%)</td>
         </tr>
         <tr class="table-row">
           <td class="p-2">Booster 1: Applications in Underwriting Queue</td>
-          <td class="p-2">${formatIndianNumber(booster1Incentive.toFixed(0))}</td>
-          <td class="p-2">Rs 50 per Application (if GWP Ach >60%)</td>
+          <td class="p-2">${formatIndianNumber(booster1Incentive.toFixed(2))}</td>
+          <td class="p-2">Rs 50 per Application (if GWP Ach >= 60%)</td>
         </tr>
         <tr class="table-row">
           <td class="p-2">Booster 2: OHMP and Allied Services Packages</td>
-          <td class="p-2">${formatIndianNumber(booster2Incentive.toFixed(0))}</td>
-          <td class="p-2">Rs 100 per sale (if GWP Ach >60%)</td>
+          <td class="p-2">${formatIndianNumber(booster2Incentive.toFixed(2))}</td>
+          <td class="p-2">Rs 100 per sale (if GWP Ach >= 60%)</td>
         </tr>
-        <tr class="table-row">
-          <td class="p-2 font-bold">Total Monthly Incentive</td>
-          <td class="p-2 font-bold result-highlight">${formatIndianNumber(totalIncentive.toFixed(0))}</td>
+        <tr class="table-row font-bold">
+          <td class="p-2">Total Incentive</td>
+          <td class="p-2 result-highlight">${formatIndianNumber(totalIncentive.toFixed(2))}</td>
           <td class="p-2"></td>
         </tr>
       `;
 
+      document.getElementById('final-result').innerText = finalResult;
       document.getElementById('results').classList.remove('hidden');
     }
   </script>
