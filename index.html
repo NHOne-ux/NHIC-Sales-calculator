@@ -317,14 +317,14 @@
     // Payout table (inclusive of lower bound, exclusive of upper bound)
     const payoutTable = [
       { min: 0, max: 60, payout: 0 },        // 0% to <60%
-      { min: 60, max: 70, payout: 0.03 },    // 60% to <70%
-      { min: 70, max: 80, payout: 0.04 },    // 70% to <80%
-      { min: 80, max: 90, payout: 0.05 },    // 80% to <90%
-      { min: 90, max: 100, payout: 0.06 },   // 90% to <100%
-      { min: 100, max: 110, payout: 0.12 },  // 100% to <110%
-      { min: 110, max: 120, payout: 0.15 },  // 110% to <120%
-      { min: 120, max: 130, payout: 0.20 },  // 120% to <130%
-      { min: 130, max: Infinity, payout: 0.25 } // >=130%
+      { min: 60, max: 70, payout: 0.03 },    // 60% to <70% → 3%
+      { min: 70, max: 80, payout: 0.04 },    // 70% to <80% → 4%
+      { min: 80, max: 90, payout: 0.05 },    // 80% to <90% → 5%
+      { min: 90, max: 100, payout: 0.06 },   // 90% to <100% → 6%
+      { min: 100, max: 110, payout: 0.12 },  // 100% to <110% → 12%
+      { min: 110, max: 120, payout: 0.15 },  // 110% to <120% → 15%
+      { min: 120, max: 130, payout: 0.20 },  // 120% to <130% → 20%
+      { min: 130, max: Infinity, payout: 0.25 } // >=130% → 25%
     ];
 
     // Calculate results
@@ -344,5 +344,77 @@
       // Calculate GWP Achievement %
       const gwpPercent = gwpTarget > 0 ? (gwpAchievement / gwpTarget * 100) : 0;
 
-      // Calculate Core Parameter Incentive (incremental slab-wise, starting at 70%)
-      let coreIncentive =
+      // Calculate Core Parameter Incentive (incremental slab-wise, starting at 60%)
+      let coreIncentive = 0;
+      let previousPercent = 60; // Start at 60% threshold
+      let previousGWP = gwpTarget * 0.6; // GWP at 60%
+
+      if (gwpPercent > 60) { // Core Parameter incentive unlocks only if GWP Achievement > 60%
+        for (const slab of payoutTable) {
+          if (slab.min < 60) continue; // Skip slabs below 60%
+
+          // Determine the upper bound of the current slab
+          const upperPercent = slab.max === Infinity ? gwpPercent : Math.min(slab.max, gwpPercent);
+          if (upperPercent <= 60) continue; // Skip if we haven't exceeded 60%
+
+          // Calculate the GWP at the upper bound of the slab
+          const upperGWP = (upperPercent / 100) * gwpTarget;
+
+          // Only include GWP above the 60% threshold in the calculation
+          let slabGWP = 0;
+          if (upperGWP > previousGWP) {
+            slabGWP = upperGWP - previousGWP;
+            // Apply the payout rate to the GWP in this slab
+            coreIncentive += slabGWP * slab.payout;
+          }
+
+          previousGWP = upperGWP;
+          previousPercent = upperPercent;
+          if (gwpPercent <= slab.max) break; // Stop if we've reached the achievement %
+        }
+      }
+
+      // Calculate Booster Incentives (apply if GWP Achievement >= 60%)
+      const boosterThreshold = 60;
+      const booster1Incentive = gwpPercent >= boosterThreshold ? applications * 30 : 0;
+      const booster2Incentive = gwpPercent >= boosterThreshold ? ohmpPackages * 100 : 0;
+
+      // Total Incentive
+      const totalIncentive = coreIncentive + booster1Incentive + booster2Incentive;
+
+      // Final Result Message
+      const finalResult = totalIncentive > 0
+        ? `Congratulations, you have qualified for the Spark Incentives. Your Incentive for this month is Rs ${formatIndianNumber(totalIncentive.toFixed(2))}.`
+        : `You missed the Spark incentive for the performance month.`;
+
+      // Display Results
+      const resultsTable = document.getElementById('results-table');
+      resultsTable.innerHTML = `
+        <tr class="table-row">
+          <td class="p-2">Core Parameter: GWP</td>
+          <td class="p-2">${formatIndianNumber(coreIncentive.toFixed(2))}</td>
+          <td class="p-2">Incremental slab-wise payout on GWP above 60% threshold (unlocks > 60%)</td>
+        </tr>
+        <tr class="table-row">
+          <td class="p-2">Booster 1: Applications in Underwriting Queue</td>
+          <td class="p-2">${formatIndianNumber(booster1Incentive.toFixed(2))}</td>
+          <td class="p-2">Rs 30 per Application (if GWP Ach >= 60%)</td>
+        </tr>
+        <tr class="table-row">
+          <td class="p-2">Booster 2: OHMP and Allied Services Packages</td>
+          <td class="p-2">${formatIndianNumber(booster2Incentive.toFixed(2))}</td>
+          <td class="p-2">Rs 100 per sale (if GWP Ach >= 60%)</td>
+        </tr>
+        <tr class="table-row font-bold">
+          <td class="p-2">Total Incentive</td>
+          <td class="p-2 result-highlight">${formatIndianNumber(totalIncentive.toFixed(2))}</td>
+          <td class="p-2"></td>
+        </tr>
+      `;
+
+      document.getElementById('final-result').innerText = finalResult;
+      document.getElementById('results').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
